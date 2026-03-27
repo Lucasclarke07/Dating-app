@@ -308,7 +308,7 @@
       overflow: hidden;
       cursor: grab;
       user-select: none;
-      transition: transform 0.15s ease;
+      touch-action: none;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
 
@@ -924,11 +924,14 @@ function App() {
   const messagesEndRef = useRef(null);
 
   const currentProfile = profiles[0];
+  const dragState = useRef({ startX: 0, startY: 0, isDragging: false });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   const handleSwipe = (direction) => {
     if (!currentProfile) return;
     setSwipeAnim(direction);
     setShowLikeIndicator(direction === "right" ? "like" : "nope");
+    setDragOffset({ x: 0, y: 0 });
 
     setTimeout(() => {
       if (direction === "right") {
@@ -946,6 +949,36 @@ function App() {
       setSwipeAnim(null);
       setShowLikeIndicator(null);
     }, 400);
+  };
+
+  const onDragStart = (e) => {
+    if (swipeAnim) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    dragState.current = { startX: clientX, startY: clientY, isDragging: true };
+  };
+
+  const onDragMove = (e) => {
+    if (!dragState.current.isDragging || swipeAnim) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = clientX - dragState.current.startX;
+    const y = clientY - dragState.current.startY;
+    setDragOffset({ x, y });
+    const threshold = 60;
+    setShowLikeIndicator(x > threshold ? "like" : x < -threshold ? "nope" : null);
+  };
+
+  const onDragEnd = () => {
+    if (!dragState.current.isDragging) return;
+    dragState.current.isDragging = false;
+    const threshold = 100;
+    if (dragOffset.x > threshold) handleSwipe("right");
+    else if (dragOffset.x < -threshold) handleSwipe("left");
+    else {
+      setDragOffset({ x: 0, y: 0 });
+      setShowLikeIndicator(null);
+    }
   };
 
   const sendMessage = (matchId) => {
@@ -1112,7 +1145,20 @@ function App() {
                 </div>
               </div>
             )}
-            <div className={`profile-card front ${swipeAnim === "left" ? "swiping-left" : ""} ${swipeAnim === "right" ? "swiping-right" : ""}`}>
+            <div
+              className={`profile-card front ${swipeAnim === "left" ? "swiping-left" : ""} ${swipeAnim === "right" ? "swiping-right" : ""}`}
+              style={!swipeAnim ? {
+                transform: `translateX(${dragOffset.x}px) translateY(${dragOffset.y * 0.2}px) rotate(${dragOffset.x * 0.07}deg)`,
+                transition: dragState.current.isDragging ? "none" : "transform 0.3s ease"
+              } : {}}
+              onMouseDown={onDragStart}
+              onMouseMove={onDragMove}
+              onMouseUp={onDragEnd}
+              onMouseLeave={onDragEnd}
+              onTouchStart={onDragStart}
+              onTouchMove={onDragMove}
+              onTouchEnd={onDragEnd}
+            >
               <div className="card-image" style={{background: `linear-gradient(135deg, ${COLORS[0]}, ${COLORS[1]})`, fontSize:120}}>
                 {currentProfile.emoji}
               </div>
