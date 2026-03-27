@@ -4,6 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Spark — Just Meet</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Spark" />
+  <meta name="theme-color" content="#0c0c0e" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230c0c0e'/><text y='.9em' font-size='80' x='10'>✦</text></svg>" />
+  <link rel="manifest" href="data:application/json,{
+    %22name%22:%22Spark%20%E2%80%94%20Just%20Meet%22,
+    %22short_name%22:%22Spark%22,
+    %22start_url%22:%22/%22,
+    %22display%22:%22standalone%22,
+    %22background_color%22:%22%230c0c0e%22,
+    %22theme_color%22:%22%230c0c0e%22,
+    %22description%22:%22Stop%20texting.%20Just%20meet.%22,
+    %22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230c0c0e'/><text y='.9em' font-size='80' x='10'>✦</text></svg>%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]
+  }" />
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -1398,6 +1413,32 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+<script>
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  setTimeout(() => {
+    const banner = document.createElement('div');
+    banner.id = 'install-banner';
+    banner.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1e1e21;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:14px 20px;display:flex;align-items:center;gap:12px;font-family:DM Sans,sans-serif;color:#f5f5f7;font-size:14px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.4);max-width:340px;width:calc(100% - 40px);';
+    banner.innerHTML = '<span style="font-size:24px">✦</span><span style="flex:1">Add <strong>Spark</strong> to your home screen</span><button onclick="installApp()" style="background:linear-gradient(135deg,#ff5c6a,#ff8c69);border:none;color:white;padding:8px 16px;border-radius:50px;font-weight:600;cursor:pointer;font-size:13px;">Add</button><button onclick="document.getElementById(\'install-banner\').remove()" style="background:transparent;border:none;color:#8e8e93;cursor:pointer;font-size:18px;padding:0 4px;">×</button>';
+    document.body.appendChild(banner);
+  }, 8000);
+});
+window.installApp = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner')?.remove();
+};
+if ('serviceWorker' in navigator) {
+  const sw = "self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>clients.claim());self.addEventListener('fetch',e=>e.respondWith(caches.open('spark-v1').then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(nr=>{c.put(e.request,nr.clone());return nr;})))));";
+  const blob = new Blob([sw], {type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
 </script>
 </body>
 </html>
